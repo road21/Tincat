@@ -1,13 +1,50 @@
+\import Set
+\import SetCat
 \import algebra.Semigroup
+\import lib.Data.Unit
+\import lib.HLevel
+\import lib.Paths
 
-\record Monoid (unit : S)
-               (l_unit : \Pi (x : S) -> op x unit = x)
-               (r_unit : \Pi (x : S) -> op unit x = x)
+\record Monoid (empty : S)
+               (l_unit : \Pi (x : S) -> op x empty = x)
+               (r_unit : \Pi (x : S) -> op empty x = x)
   \extends Semigroup \where {
     \open Semigroup
 
     \record Homo {A B : Monoid}
                  (h : A.S -> B.S)
                  (op_e : \Pi (x y : A.S) -> h (x |+| {A} y) = h x |+| {B} h y)
-                 (un_e : h A.unit = B.unit)
+                 (un_e : h A.empty = B.empty)
+
+    \func id {A : Monoid} : Homo {A} {A} \cowith {
+      | h => Set.id
+      | op_e _ _ => idp
+      | un_e => idp
+    }
+
+    \func comp {A B C : Monoid} (f : Homo {B} {C}) (g : Homo {A} {B}) : Homo {A} {C} \cowith {
+      | h => Set.comp f.h g.h
+      | op_e => \lam x y =>
+        pmap (\lam k => f.h k) (g.op_e x y) *> f.op_e (g.h x) (g.h y)
+      | un_e => pmap f.h g.un_e *> f.un_e
+    }
+
+    \func equiv {A B : Monoid} (f g : Homo {A} {B})(e : f.h = g.h) : f = g =>
+      \let | f' : Homo {A} {B} f.h => \new Homo f.h f.op_e f.un_e
+           | g' : Homo {A} {B} g.h => \new Homo g.h g.op_e g.un_e
+           | eqq (i : I) => \Pi (x : Homo {A} {B} f.h) (y : Homo {A} {B} (e @ i)) -> x = {Homo {A} {B}} y \in
+        coe eqq (\lam (h1 h2 : Homo {A} {B} f.h) =>
+          path (\lam i => \new Homo f.h (\lam x y =>
+            ((B.is_set (f.h (x |+| {A} y)) (f.h x |+| {B} f.h y)) (h1.op_e x y) (h2.op_e x y)) @ i)
+            (((B.is_set (f.h A.empty) B.empty) h1.un_e h2.un_e) @ i)
+          )
+        ) right f' g'
+
+    \func zero => \new Monoid (Unit) (unit_isSet) {
+      | op => \lam u1 => \lam u2 => unit
+      | assoc => \lam _ _ _ => idp
+      | empty => unit
+      | l_unit _ => idp
+      | r_unit _ => idp
+    }
   }
