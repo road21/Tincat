@@ -1,0 +1,13 @@
+\import algebra.Semigroup
+
+\record Monoid (unit : S)
+               (l_unit : \Pi (x : S) -> op x unit = x)
+               (r_unit : \Pi (x : S) -> op unit x = x)
+  \extends Semigroup \where {
+    \open Semigroup
+
+    \record Homo {A B : Monoid}
+                 (h : A.S -> B.S)
+                 (op_e : \Pi (x y : A.S) -> h (x |+| {A} y) = h x |+| {B} h y)
+                 (un_e : h A.unit = B.unit)
+  }
